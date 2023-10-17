@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <time.h>
+#include <limits.h>
 
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
 #define IS_DRY -1
