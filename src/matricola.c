@@ -664,12 +664,12 @@ void print_dist( const Graph *g, int src, int dst, const int *p, const double *d
 
 }
 
-void matrix_destroy(int **array, int n)
+void matrix_destroy(int **matrix, int n)
 {
     int i;
     for (i = 0; i < n; i++)
     {
-        free(array[i]);
+        free(matrix[i]);
     }
     
 }
@@ -726,16 +726,17 @@ int main(int argc, char const *argv[])
     g = graph_create(n * m);
     assert(g != NULL);
     fill_graph(g, matrix, n, m);
-    graph_print(g);
-    matrix_destroy(matrix, n);
-   
     
+    matrix_destroy(matrix,n);
     
+    printf("Grafo creato\n");
+
     d = (double*)malloc(n * sizeof(*d)); assert(d != NULL);
     p = (int*)malloc(n * sizeof(*p)); assert(p != NULL);
     sp = (const Edge**)malloc(n * sizeof(*sp)); assert(sp != NULL);
 
     dijkstra(g, 0, d, p, sp);
     print_path(p,0,GRAPH_INDEX(n-1,m-1,m));
+    
     return EXIT_SUCCESS;
 }
