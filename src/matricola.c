@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <time.h>
+#include <limits.h>
 
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
 #define IS_DRY -1
@@ -486,7 +487,8 @@ int **load_matrix(FILE *filein, int n, int m)
     int skyscapers=0;
     char c;
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
-    matrix = (int **)calloc(n+1, sizeof(int *));
+    matrix = (int **)calloc(n+1, sizeof(*matrix));
+   
     c = fgetc(filein);
     while (c != EOF)
     {
@@ -518,16 +520,16 @@ int **load_matrix(FILE *filein, int n, int m)
         }
         else
         {
-            matrix[i] = (int *)calloc(m, sizeof(int));
+            matrix[i] = (int *)calloc(m, sizeof(**matrix));
             delta = INT_MIN;
         }
         c = fgetc(filein);
     }
    
-    matrix[n+1] = (int*)malloc(sizeof(int));
-    matrix[n+1][0] = skyscapers;
-    fclose(filein);
-    /*printf("skyscapers: %d\n", matrix[n+1][0]);*/
+    matrix[n+1] = (int*)malloc(sizeof(**matrix));
+    *matrix[n+1] = skyscapers;
+    
+
     return matrix;
 }
 /*Genera double random sicuramente maggiore del valore affidato per archi entranti in 
@@ -671,7 +673,20 @@ void matrix_destroy(int **matrix, int n)
     {
         free(matrix[i]);
     }
-    
+    free(matrix);
+}
+
+void print_matrix(int **matrix, int m, int n)
+{
+    int i, j;
+    for (i = 0; i < m; i++)
+    {
+        for (j = 0; j < n; j++)
+        {
+            printf("%d\t", GRAPH_INDEX(i,j,n));
+        }
+        printf("\n");
+    }
 }
 /**/
 /***
@@ -720,8 +735,10 @@ int main(int argc, char const *argv[])
     n = m_n[1];
     free(m_n);
     matrix = load_matrix(filein, n, m);
-    skyscapers = matrix[n+1][0];
+    skyscapers = *matrix[n+1];
     free(matrix[n+1]);
+    matrix[n+1] = NULL;
+    print_matrix(matrix, n, m);
     printf("skyscapers: %d\n", skyscapers);
     g = graph_create(n * m);
     assert(g != NULL);
