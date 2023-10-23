@@ -12,6 +12,11 @@
 
 
 /*min heap */
+typedef struct{
+    int** matrix;
+    int skyscapers;
+}Load_matrix;
+
 const int NODE_UNDEF = -1;
 
 typedef struct {
@@ -466,6 +471,17 @@ int *read_dimension(FILE *filein)
     fscanf(filein, "%d %d", &dim[0], &dim[1]);
     return dim;
 }
+/***Edoardo desiderio
+ * distrugge il doppio puntatore***/
+void matrix_destroy(int **matrix, int r)
+{
+    int i;
+    for (i = 0; i < r; i++)
+    {
+        free(matrix[i]);
+    }
+    free(matrix);
+}
 
 /***
  * Edoardo Desiderio
@@ -474,11 +490,11 @@ int *read_dimension(FILE *filein)
  * distingue se la cella risulta bagnata oppure no, nel caso
  * assegna il valore IS_DRY
  * @param filein
- * @param n righe
- * @param m colonne
- * @returns la matrice, e nella posizione n+1 il numero di palazzi
+ * @param rows righe
+ * @param col colonne
+ * @returns la matrice e il numero di palazzi
  ***/
-int **load_matrix(FILE *filein, int n, int m)
+Load_matrix load_matrix(FILE *filein, int rows, int col)
 {
     int i = 0, j = 0;
     int  tmp;
@@ -486,8 +502,12 @@ int **load_matrix(FILE *filein, int n, int m)
     int **matrix;
     int skyscapers=0;
     char c;
+    Load_matrix output;
+
+    
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
-    matrix = (int **)calloc(n+1, sizeof(*matrix));
+    rows++;
+    matrix = (int **)calloc(rows, sizeof(*matrix));
    
     c = fgetc(filein);
     while (c != EOF)
@@ -500,7 +520,7 @@ int **load_matrix(FILE *filein, int n, int m)
                 skyscapers++;
                 if (tmp+j > delta)
                 {
-                    delta = tmp + j <= m ? tmp + j : m;
+                    delta = tmp + j <= col ? tmp + j : col;
                 }
             }
             else
@@ -512,7 +532,7 @@ int **load_matrix(FILE *filein, int n, int m)
             }
             matrix[i][j] = tmp;
             j++;
-            if (j == m)
+            if (j == col)
             {
                 i++;
                 j = 0;
@@ -520,17 +540,15 @@ int **load_matrix(FILE *filein, int n, int m)
         }
         else
         {
-            matrix[i] = (int *)calloc(m, sizeof(**matrix));
+            matrix[i] = (int *)calloc(col, sizeof(**matrix));
             delta = INT_MIN;
         }
         c = fgetc(filein);
     }
    
-    matrix[n+1] = (int*)malloc(sizeof(**matrix));
-    *matrix[n+1] = skyscapers;
-    
-
-    return matrix;
+    output.matrix = matrix;
+    output.skyscapers = skyscapers;
+    return output;
 }
 /*Genera double random sicuramente maggiore del valore affidato per archi entranti in 
 celle asciutte */
@@ -666,15 +684,7 @@ void print_dist( const Graph *g, int src, int dst, const int *p, const double *d
 
 }
 
-void matrix_destroy(int **matrix, int n)
-{
-    int i;
-    for (i = 0; i < n; i++)
-    {
-        free(matrix[i]);
-    }
-    free(matrix);
-}
+
 
 void print_matrix(int **matrix, int m, int n)
 {
@@ -687,6 +697,7 @@ void print_matrix(int **matrix, int m, int n)
         }
         printf("\n");
     }
+  
 }
 /**/
 /***
@@ -700,8 +711,9 @@ void print_matrix(int **matrix, int m, int n)
  ***/
 int main(int argc, char const *argv[])
 {
-    int *m_n;
-    int m, n,skyscapers;
+    int *r_c;
+    int r, c,skyscapers;
+    Load_matrix output_of_file;
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -730,30 +742,30 @@ int main(int argc, char const *argv[])
     printf("matrice caricata da %s\n", argv[1]);
 
     /*leggo la prima riga del file per le dimensioni*/
-    m_n = read_dimension(filein);
-    m = m_n[0];
-    n = m_n[1];
-    free(m_n);
-    matrix = load_matrix(filein, n, m);
-    skyscapers = *matrix[n+1];
-    free(matrix[n+1]);
-    matrix[n+1] = NULL;
-    print_matrix(matrix, n, m);
-    printf("skyscapers: %d\n", skyscapers);
-    g = graph_create(n * m);
+    r_c = read_dimension(filein);
+    r = r_c[0];
+    c = r_c[1];
+    free(r_c);
+
+    output_of_file = load_matrix(filein, c, r);
+    matrix = output_of_file.matrix;
+    skyscapers = output_of_file.skyscapers;
+
+    print_matrix(matrix, c, r);
+
+    g = graph_create(c * r);
     assert(g != NULL);
-    fill_graph(g, matrix, n, m);
+    fill_graph(g, matrix, r, c);
     
-    matrix_destroy(matrix,n);
-    
+    matrix_destroy(matrix,r);
     printf("Grafo creato\n");
 
-    d = (double*)malloc(n * sizeof(*d)); assert(d != NULL);
-    p = (int*)malloc(n * sizeof(*p)); assert(p != NULL);
-    sp = (const Edge**)malloc(n * sizeof(*sp)); assert(sp != NULL);
+    d = (double*)malloc(g->n * sizeof(*d)); assert(d != NULL);
+    p = (int*)malloc(g->n * sizeof(*p)); assert(p != NULL);
+    sp = (const Edge**)malloc(g->n * sizeof(*sp)); assert(sp != NULL);
 
     dijkstra(g, 0, d, p, sp);
-    print_path(p,0,GRAPH_INDEX(n-1,m-1,m));
+    print_path(p,0,GRAPH_INDEX(c-1,r-1,r));
     
     return EXIT_SUCCESS;
 }
