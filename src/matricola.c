@@ -494,15 +494,13 @@ void matrix_destroy(int **matrix, int r)
  * @param col colonne
  * @returns la matrice e il numero di palazzi
  ***/
-Load_matrix load_matrix(FILE *filein, int rows, int col)
+int** load_matrix(FILE *filein, int rows, int col)
 {
     int i = 0, j = 0;
     int  tmp;
     int delta = INT_MIN;
     int **matrix;
-    int skyscapers=0;
     char c;
-    Load_matrix output;
 
     
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
@@ -517,18 +515,14 @@ Load_matrix load_matrix(FILE *filein, int rows, int col)
             tmp = atoi(&c);
             if (tmp > 0)
             {
-                skyscapers++;
                 if (tmp+j > delta)
                 {
                     delta = tmp + j <= col ? tmp + j : col;
                 }
             }
-            else
+            else if (j <= delta) 
             {
-                if (j <= delta)
-                {
-                    tmp = IS_DRY;
-                }
+                tmp = IS_DRY;
             }
             matrix[i][j] = tmp;
             j++;
@@ -545,10 +539,7 @@ Load_matrix load_matrix(FILE *filein, int rows, int col)
         }
         c = fgetc(filein);
     }
-   
-    output.matrix = matrix;
-    output.skyscapers = skyscapers;
-    return output;
+    return matrix;
 }
 /*Genera double random sicuramente maggiore del valore affidato per archi entranti in 
 celle asciutte */
@@ -693,7 +684,7 @@ void print_matrix(int **matrix, int m, int n)
     {
         for (j = 0; j < n; j++)
         {
-            printf("%d\t", GRAPH_INDEX(i,j,n));
+            printf("%d\t", matrix[i][j]);
         }
         printf("\n");
     }
@@ -712,8 +703,7 @@ void print_matrix(int **matrix, int m, int n)
 int main(int argc, char const *argv[])
 {
     int *r_c;
-    int r, c,skyscapers;
-    Load_matrix output_of_file;
+    int r, c;
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -746,14 +736,13 @@ int main(int argc, char const *argv[])
     r = r_c[0];
     c = r_c[1];
     free(r_c);
+    
 
-    output_of_file = load_matrix(filein, c, r);
-    matrix = output_of_file.matrix;
-    skyscapers = output_of_file.skyscapers;
+    matrix = load_matrix(filein, c, r);
+    fclose(filein);
 
-    print_matrix(matrix, c, r);
-
-    g = graph_create(c * r);
+    print_matrix(matrix,r,c);
+    g = graph_create(r * c);
     assert(g != NULL);
     fill_graph(g, matrix, r, c);
     
