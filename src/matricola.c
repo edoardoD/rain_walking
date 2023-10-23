@@ -8,15 +8,13 @@
 #include <limits.h>
 
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
+#define MATRIX_I(val,col) (val/col)
+#define MATRIX_J(val,col) (val%col)
 #define IS_DRY -1
+#define WEIGHT_DRY 1.0
 
 
 /*min heap */
-typedef struct{
-    int** matrix;
-    int skyscapers;
-}Load_matrix;
-
 const int NODE_UNDEF = -1;
 
 typedef struct {
@@ -402,8 +400,11 @@ static int exsit_edge(Graph *g, int src, int dst)
     }
     return 0;
 }
-
-void graph_add_edge(Graph *g, int src, int dst, double weight)
+/***
+ * Edoardo Desiderio
+ * modifica della funzione vista nelle soluzioni degli elaborati in laboratorio
+ * ***/
+void graph_add_edge(Graph *g, int src, int dst, double weight,int** matrix,int col)
 {
     Edge *new_edge = (Edge *)malloc(sizeof(Edge));
 
@@ -423,7 +424,7 @@ void graph_add_edge(Graph *g, int src, int dst, double weight)
 
         if (!exsit_edge(g, dst, src))
         {
-            graph_add_edge(g, dst, src, weight);
+            graph_add_edge(g, dst, src, matrix[MATRIX_I(dst,col)][MATRIX_J(dst,col)] == IS_DRY ? WEIGHT_DRY : weight,matrix,col);
         }
     }
     else
@@ -541,8 +542,10 @@ int** load_matrix(FILE *filein, int rows, int col)
     }
     return matrix;
 }
-/*Genera double random sicuramente maggiore del valore affidato per archi entranti in 
-celle asciutte */
+/***
+ * Genera double random sicuramente maggiore del valore affidato per archi entranti in 
+    celle asciutte
+    * @returns un double random ***/
 static double generate_random_number()
 {
     double random_number; 
@@ -556,7 +559,7 @@ static double generate_random_number()
 /***
  * Edoardo Desiderio.
  * funzione che riempie il grafo con i nodi e gli archi,
- * un arco entrante in una cella IS_DRY avrà peso 1.0, altrimenti
+ * un arco entrante in una cella IS_DRY avrà peso WEIGHT_DRY, altrimenti
  * verrà calcolato il peso con un numero double randomico sufficientemente
  * in modo da far pesare molto il fatto che si passi in una cella bagnata
  * @param g grafo
@@ -569,7 +572,6 @@ void fill_graph(Graph* g,int** matrix, int n,int m){
     
     int i,j;
     double wet_weigth = generate_random_number();
-    
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < m; j++)
@@ -578,11 +580,11 @@ void fill_graph(Graph* g,int** matrix, int n,int m){
             {
                 if (i + 1 < n && matrix[i + 1][j] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? 1.0 : wet_weigth);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix,m);
                 }
                 if (j + 1 < m && matrix[i][j + 1] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? 1.0 : wet_weigth);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? WEIGHT_DRY : wet_weigth,matrix,m);
                 }
             }
         }
@@ -592,12 +594,12 @@ void fill_graph(Graph* g,int** matrix, int n,int m){
 /*FINE CODICE SUL GRAFO*/
 
 /*algoritmo di dykstra*/
-void dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp)
+int dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp, int** matrix,int c)
 {
     int i;
     int v,u;
     const Edge *e;
-
+    int rained = 0;
     /*inizializzazione contenuti*/
     for ( i = 0; i < g->n; i++)
     {
@@ -610,7 +612,6 @@ void dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp)
     /*inizializzazione coda di priorità*/
     Q = minheap_create(g->n);
 
-    
     for ( i = 0; i < g->n; i++)
     {
         minheap_insert(Q, i, d[i]);
@@ -629,15 +630,21 @@ void dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp)
                 d[v] = d[u] + e->weight;
                 p[v] = u;
                 sp[v] = e;
+                if (matrix[MATRIX_I(v,c)][MATRIX_J(v,c)] == 0)
+                {
+                    rained++;
+                }
                 minheap_change_prio(Q,v,d[v]);
             }
             e = e->next;
         }
     }
-    /*beauty print array Q->pos*/
+    return rained;
 }
+
 void print_path(const int *p, int src, int dst)
 {
+    
     if (src == dst)
     {
         printf("%d",src);
@@ -648,6 +655,7 @@ void print_path(const int *p, int src, int dst)
     }
     else
     {
+        
         print_path(p,src,p[dst]);
         printf("->%d",dst);
     }
@@ -674,9 +682,6 @@ void print_dist( const Graph *g, int src, int dst, const int *p, const double *d
     }
 
 }
-
-
-
 void print_matrix(int **matrix, int m, int n)
 {
     int i, j;
@@ -703,7 +708,8 @@ void print_matrix(int **matrix, int m, int n)
 int main(int argc, char const *argv[])
 {
     int *r_c;
-    int r, c;
+    int r, c,i;
+    int rainded = 0;   
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -736,25 +742,33 @@ int main(int argc, char const *argv[])
     r = r_c[0];
     c = r_c[1];
     free(r_c);
-    
-
+    /*caricamento della matrice*/
     matrix = load_matrix(filein, c, r);
     fclose(filein);
-
-    print_matrix(matrix,r,c);
     g = graph_create(r * c);
     assert(g != NULL);
     fill_graph(g, matrix, r, c);
     
-    matrix_destroy(matrix,r);
-    printf("Grafo creato\n");
-
+    /*graph_print(g);*/
     d = (double*)malloc(g->n * sizeof(*d)); assert(d != NULL);
     p = (int*)malloc(g->n * sizeof(*p)); assert(p != NULL);
     sp = (const Edge**)malloc(g->n * sizeof(*sp)); assert(sp != NULL);
 
-    dijkstra(g, 0, d, p, sp);
-    print_path(p,0,GRAPH_INDEX(c-1,r-1,r));
+    rainded = dijkstra(g, 0, d, p, sp,matrix,c);
+    print_path(p,0,GRAPH_INDEX(c-1,r-1,c));
+
+    for ( i = 0; sp[i] != NULL; i++)
+    {
+        printf("%d\t  ",sp[i]->src);
+        if (10 %i == 0)
+        {
+            printf("\n");
+        }        
+    }
     
+
+    
+    
+    matrix_destroy(matrix,r);
     return EXIT_SUCCESS;
 }
