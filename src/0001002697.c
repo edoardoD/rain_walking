@@ -894,8 +894,8 @@ int main(int argc, char const *argv[])
     matrix_destroy(matrix, rows);
 
     dijkstra(g, 0, d, p, sp);
-
     print_result(sp, p, 0, GRAPH_INDEX(rows - 1, cols - 1, cols), cols);
+    
     free(d);
     free(p);
     free(sp);
