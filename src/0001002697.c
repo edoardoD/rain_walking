@@ -1,3 +1,9 @@
+/***
+ * @author Edoardo Desiderio
+ * Gruppo B 
+ * edoardo.desiderio3@studio.unibo.it
+ * ***/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -872,6 +878,7 @@ int main(int argc, char const *argv[])
     rows = r_c[0];
     cols = r_c[1];
     free(r_c);
+    r_c = NULL;
     /*caricamento della matrice*/
     matrix = load_matrix(filein, rows, cols);
 #ifdef DEBUG
@@ -897,9 +904,13 @@ int main(int argc, char const *argv[])
 
     print_result(sp, p, 0, GRAPH_INDEX(rows - 1, cols - 1, cols), cols);
     free(d);
+    d=NULL;
     free(p);
+    p=NULL;
     free(sp);
+    sp=NULL;
     graph_destroy(g);
+    g=NULL;
 
     return EXIT_SUCCESS;
 }
