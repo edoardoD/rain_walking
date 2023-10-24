@@ -8,24 +8,25 @@
 #include <limits.h>
 
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
-#define MATRIX_I(val,col) (val/col)
-#define MATRIX_J(val,col) (val%col)
+#define MATRIX_I(val, col) (val / col)
+#define MATRIX_J(val, col) (val % col)
 #define IS_DRY -1
 #define WEIGHT_DRY 1.0
-
 
 /*min heap */
 const int NODE_UNDEF = -1;
 
-typedef struct {
+typedef struct
+{
     int key;
     double prio;
 } HeapElem;
 
-typedef struct {
+typedef struct
+{
     HeapElem *heap;
     int *pos; /* TODO: non inizializzato! Usare solo dopo una implementazione funzionante di minheap_change_prio() in cui la chiave da modificare si trova con una normale ricerca lineare sull'array heap[] */
-    int n; /* quante coppie (chiave, prio) sono effettivamente presenti nello heap */
+    int n;    /* quante coppie (chiave, prio) sono effettivamente presenti nello heap */
     int size; /* massimo numero di coppie (chiave, prio) che possono essere contenuti nello heap */
 } MinHeap;
 
@@ -49,7 +50,6 @@ typedef struct
     int *out_deg; /* grado uscente dei nodi       */
 } Graph;
 
-
 void minheap_print(const MinHeap *h)
 {
     int i, j, width = 1;
@@ -60,9 +60,11 @@ void minheap_print(const MinHeap *h)
     printf("n=%d size=%d\n", h->n, h->size);
     printf("Contenuto dell'array heap[] (stampato a livelli:\n");
     i = 0;
-    while (i < h->n) {
+    while (i < h->n)
+    {
         j = 0;
-        while (j<width && i < h->n) {
+        while (j < width && i < h->n)
+        {
             printf("h[%2d]=(%2d, %6.2f) ", i, h->heap[i].key, h->heap[i].prio);
             i++;
             j++;
@@ -71,17 +73,19 @@ void minheap_print(const MinHeap *h)
         width *= 2;
     }
     printf("\nContenuto dell'array pos[]:\n");
-    for (i=0; i<h->size; i++) {
+    for (i = 0; i < h->size; i++)
+    {
         printf("pos[%d]=%d ", i, h->pos[i]);
     }
     printf("\n\n** Fine contenuto dello heap\n\n");
 }
 
-void minheap_clear( MinHeap *h )
+void minheap_clear(MinHeap *h)
 {
     int i;
     assert(h != NULL);
-    for (i=0; i<h->size; i++) {
+    for (i = 0; i < h->size; i++)
+    {
         h->pos[i] = -1;
     }
     h->n = 0;
@@ -91,19 +95,19 @@ void minheap_clear( MinHeap *h )
    `size` elementi */
 MinHeap *minheap_create(int size)
 {
-    MinHeap *h = (MinHeap*)malloc(sizeof(*h)) ;
+    MinHeap *h = (MinHeap *)malloc(sizeof(*h));
     assert(h != NULL);
     assert(size > 0);
     h->size = size;
-    h->heap = (HeapElem*)malloc(size * sizeof(*(h->heap)));
+    h->heap = (HeapElem *)malloc(size * sizeof(*(h->heap)));
     assert(h->heap != NULL);
-    h->pos = (int*)malloc(size * sizeof(*(h->pos)));
+    h->pos = (int *)malloc(size * sizeof(*(h->pos)));
     assert(h->pos != NULL);
     minheap_clear(h);
     return h;
 }
 
-void minheap_destroy( MinHeap *h )
+void minheap_destroy(MinHeap *h)
 {
     assert(h != NULL);
 
@@ -146,7 +150,7 @@ static int parent(const MinHeap *h, int i)
 {
     assert(valid(h, i));
 
-    return (i+1)/2 - 1;
+    return (i + 1) / 2 - 1;
 }
 
 /* Restituisce l'indice del figlio sinistro del nodo `i`. Ritorna un
@@ -155,7 +159,7 @@ static int lchild(const MinHeap *h, int i)
 {
     assert(valid(h, i));
 
-    return 2*i + 1;
+    return 2 * i + 1;
 }
 
 /* Restituisce l'indice del figlio destro del nodo `i`. Ritorna un
@@ -164,7 +168,7 @@ static int rchild(const MinHeap *h, int i)
 {
     assert(valid(h, i));
 
-    return 2*i + 2;
+    return 2 * i + 2;
 }
 
 /* Restituisce l'indice del figlio di `i` con priorità minima. Se `i`
@@ -177,9 +181,11 @@ static int min_child(const MinHeap *h, int i)
 
     l = lchild(h, i);
     r = rchild(h, i);
-    if (valid(h, l)) {
+    if (valid(h, l))
+    {
         result = l;
-        if (valid(h, r) && (h->heap[r].prio < h->heap[l].prio)) {
+        if (valid(h, r) && (h->heap[r].prio < h->heap[l].prio))
+        {
             result = r;
         }
     }
@@ -195,7 +201,8 @@ static void move_up(MinHeap *h, int i)
     assert(valid(h, i));
 
     p = parent(h, i);
-    while ( valid(h, p) && (h->heap[i].prio < h->heap[p].prio) ) {
+    while (valid(h, p) && (h->heap[i].prio < h->heap[p].prio))
+    {
         swap(h, i, p);
         i = p;
         p = parent(h, i);
@@ -214,12 +221,16 @@ static void move_down(MinHeap *h, int i)
     /* L'operazione viene implementata iterativamente, sebbene sia
        possibile una implementazione ricorsiva probabilmente più
        leggibile. */
-    do {
+    do
+    {
         const int dst = min_child(h, i);
-        if (valid(h, dst) && (h->heap[dst].prio < h->heap[i].prio)) {
+        if (valid(h, dst) && (h->heap[dst].prio < h->heap[i].prio))
+        {
             swap(h, i, dst);
             i = dst;
-        } else {
+        }
+        else
+        {
             done = 1;
         }
     } while (!done);
@@ -253,15 +264,15 @@ int minheap_get_n(const MinHeap *h)
 /* Restituisce la chiave associata alla priorità minima */
 int minheap_min(const MinHeap *h)
 {
-    assert( !minheap_is_empty(h) );
+    assert(!minheap_is_empty(h));
 
     return h->heap[0].key;
 }
 
 /* Come minheap_min(), ma restituisce la coppia (chiave, prio) */
-HeapElem minheap_min2( const MinHeap *h)
+HeapElem minheap_min2(const MinHeap *h)
 {
-    assert( !minheap_is_empty(h) );
+    assert(!minheap_is_empty(h));
 
     return h->heap[0];
 }
@@ -271,7 +282,7 @@ void minheap_insert(MinHeap *h, int key, double prio)
 {
     int i;
 
-    assert( !minheap_is_full(h) );
+    assert(!minheap_is_full(h));
     assert((key >= 0) && (key < h->size));
     assert(h->pos[key] == -1);
 
@@ -288,14 +299,15 @@ int minheap_delete_min(MinHeap *h)
 {
     int result;
 
-    assert( !minheap_is_empty(h) );
+    assert(!minheap_is_empty(h));
 
     result = minheap_min(h);
-    swap(h, 0, h->n-1);
-    assert( h->heap[h->n - 1].key == result );
+    swap(h, 0, h->n - 1);
+    assert(h->heap[h->n - 1].key == result);
     h->pos[result] = -1;
     h->n--;
-    if (!minheap_is_empty(h)) {
+    if (!minheap_is_empty(h))
+    {
         move_down(h, 0);
     }
     return result;
@@ -306,14 +318,15 @@ HeapElem minheap_delete_min2(MinHeap *h)
 {
     HeapElem result;
 
-    assert( !minheap_is_empty(h) );
+    assert(!minheap_is_empty(h));
 
     result = minheap_min2(h);
-    swap(h, 0, h->n-1);
-    assert( h->heap[h->n - 1].key == result.key );
+    swap(h, 0, h->n - 1);
+    assert(h->heap[h->n - 1].key == result.key);
     h->pos[result.key] = -1;
     h->n--;
-    if (!minheap_is_empty(h)) {
+    if (!minheap_is_empty(h))
+    {
         move_down(h, 0);
     }
     return result;
@@ -328,14 +341,17 @@ void minheap_change_prio(MinHeap *h, int key, double newprio)
 
     assert(h != NULL);
     assert(key >= 0 && key < h->size);
-    
+
     j = h->pos[key];
-    assert( valid(h, j) );
+    assert(valid(h, j));
     oldprio = h->heap[j].prio;
     h->heap[j].prio = newprio;
-    if (newprio > oldprio) {
+    if (newprio > oldprio)
+    {
         move_down(h, j);
-    } else {
+    }
+    else
+    {
         move_up(h, j);
     }
 }
@@ -404,7 +420,7 @@ static int exsit_edge(Graph *g, int src, int dst)
  * Edoardo Desiderio
  * modifica della funzione vista nelle soluzioni degli elaborati in laboratorio
  * ***/
-void graph_add_edge(Graph *g, int src, int dst, double weight,int** matrix,int col)
+void graph_add_edge(Graph *g, int src, int dst, double weight, int **matrix, int c)
 {
     Edge *new_edge = (Edge *)malloc(sizeof(Edge));
 
@@ -424,7 +440,7 @@ void graph_add_edge(Graph *g, int src, int dst, double weight,int** matrix,int c
 
         if (!exsit_edge(g, dst, src))
         {
-            graph_add_edge(g, dst, src, matrix[MATRIX_I(dst,col)][MATRIX_J(dst,col)] == IS_DRY ? WEIGHT_DRY : weight,matrix,col);
+            graph_add_edge(g, dst, src, matrix[MATRIX_I(src, c)][MATRIX_J(src, c)] == IS_DRY ? 1.0 : weight, matrix, c);
         }
     }
     else
@@ -464,7 +480,7 @@ void graph_print(const Graph *g)
 /***
  * Edoardo Desiderio
  * legge le righe e le colonne della matrice
- * @return un puntatore di 2 elementi 
+ * @return un puntatore di 2 elementi
  * ***/
 int *read_dimension(FILE *filein)
 {
@@ -495,19 +511,18 @@ void matrix_destroy(int **matrix, int r)
  * @param col colonne
  * @returns la matrice e il numero di palazzi
  ***/
-int** load_matrix(FILE *filein, int rows, int col)
+int **load_matrix(FILE *filein, int rows, int col)
 {
     int i = 0, j = 0;
-    int  tmp;
+    int tmp;
     int delta = INT_MIN;
     int **matrix;
     char c;
 
-    
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
     rows++;
     matrix = (int **)calloc(rows, sizeof(*matrix));
-   
+
     c = fgetc(filein);
     while (c != EOF)
     {
@@ -516,12 +531,12 @@ int** load_matrix(FILE *filein, int rows, int col)
             tmp = atoi(&c);
             if (tmp > 0)
             {
-                if (tmp+j > delta)
+                if (tmp + j > delta)
                 {
                     delta = tmp + j <= col ? tmp + j : col;
                 }
             }
-            else if (j <= delta) 
+            else if (j <= delta)
             {
                 tmp = IS_DRY;
             }
@@ -543,15 +558,16 @@ int** load_matrix(FILE *filein, int rows, int col)
     return matrix;
 }
 /***
- * Genera double random sicuramente maggiore del valore affidato per archi entranti in 
+ * Genera double random sicuramente maggiore del valore affidato per archi entranti in
     celle asciutte
     * @returns un double random ***/
 static double generate_random_number()
 {
-    double random_number; 
+    double random_number;
     srand(time(NULL));
     random_number = ((double)rand() / (double)RAND_MAX) * 100.0;
-    while (random_number <= 3.0) {
+    while (random_number <= 3.0)
+    {
         random_number = ((double)rand() / (double)RAND_MAX) * 100.0;
     }
     return random_number;
@@ -566,11 +582,12 @@ static double generate_random_number()
  * @param matrix matrice
  * @param n righe
  * @param m colonne
- *  
+ *
  * ***/
-void fill_graph(Graph* g,int** matrix, int n,int m){
-    
-    int i,j;
+void fill_graph(Graph *g, int **matrix, int n, int m)
+{
+
+    int i, j;
     double wet_weigth = generate_random_number();
     for (i = 0; i < n; i++)
     {
@@ -580,11 +597,11 @@ void fill_graph(Graph* g,int** matrix, int n,int m){
             {
                 if (i + 1 < n && matrix[i + 1][j] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix,m);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix, m);
                 }
                 if (j + 1 < m && matrix[i][j + 1] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? WEIGHT_DRY : wet_weigth,matrix,m);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix, m);
                 }
             }
         }
@@ -594,25 +611,26 @@ void fill_graph(Graph* g,int** matrix, int n,int m){
 /*FINE CODICE SUL GRAFO*/
 
 /*algoritmo di dykstra*/
-int dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp, int** matrix,int c)
+void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp, int *rain_vector)
 {
     int i;
-    int v,u;
+    int v, u;
     const Edge *e;
     int rained = 0;
     /*inizializzazione contenuti*/
-    for ( i = 0; i < g->n; i++)
+    for (i = 0; i < g->n; i++)
     {
-        sp[i]=NULL;
+        sp[i] = NULL;
         d[i] = HUGE_VAL;
         p[i] = NODE_UNDEF;
+        rain_vector[i] = NODE_UNDEF;
     }
-    d[s] = 0 ;
+    d[s] = 0;
     p[s] = NODE_UNDEF;
     /*inizializzazione coda di priorità*/
     Q = minheap_create(g->n);
 
-    for ( i = 0; i < g->n; i++)
+    for (i = 0; i < g->n; i++)
     {
         minheap_insert(Q, i, d[i]);
     }
@@ -630,57 +648,76 @@ int dijkstra( const Graph *g, int s, double *d, int *p, const Edge **sp, int** m
                 d[v] = d[u] + e->weight;
                 p[v] = u;
                 sp[v] = e;
-                if (matrix[MATRIX_I(v,c)][MATRIX_J(v,c)] == 0)
-                {
-                    rained++;
-                }
-                minheap_change_prio(Q,v,d[v]);
+
+                minheap_change_prio(Q, v, d[v]);
             }
             e = e->next;
         }
     }
-    return rained;
 }
-
-void print_path(const int *p, int src, int dst)
+ 
+void print_path(const int *p, int src, int dst, int col)
 {
-    
-    if (src == dst)
+    if (dst != src)
     {
-        printf("%d",src);
+        if (p[dst] == NODE_UNDEF)
+        {
+            printf("Non raggiungibile");
+        }
+        else
+        {
+            print_path(p, src, p[dst], col);
+            if (dst - col == p[dst])
+            {
+                printf("S");
+            }
+            else if (dst + col == p[dst])
+            {
+                printf("N");
+            }
+            else if (dst - 1 == p[dst])
+            {
+                printf("E");
+            }
+            else if (dst + 1 == p[dst])
+            {
+                printf("O");
+            }
+            else
+            {
+                printf("\nERRORE");
+            }
+        }
     }
-    else if (p[dst] == NODE_UNDEF)
-    {
-        printf("Non raggiungibile");
-    }
-    else
-    {
-        
-        print_path(p,src,p[dst]);
-        printf("->%d",dst);
-    }
-    
 }
-void print_dist( const Graph *g, int src, int dst, const int *p, const double *d )
+void print_result(const Edge* sp, const int *p, int src, int dst, int col){
+    
+   int rained = 0;
+    
+    
+    print_path(p, src, dst, col);
+}
+void print_dist(const Graph *g, int src, int dst, const int *p, const double *d, int col)
 {
     const int n = graph_n_nodes(g);
-    int v, from_idx = 0, to_idx = n-1;
+    int v, from_idx = 0, to_idx = n - 1;
 
     assert(p != NULL);
     assert(d != NULL);
 
-    if (dst >= 0) {
+    if (dst >= 0)
+    {
         from_idx = to_idx = dst;
     }
 
     printf(" src  dst            d path\n");
     printf("---- ---- ------------ -------------------------\n");
-    for (v=from_idx; v<=to_idx; v++) {
+    for (v = from_idx; v <= to_idx; v++)
+    {
         printf("%4d %4d %12.4f ", src, v, d[v]);
-        print_path(p, src, v);
+        print_path(p, src, v, col);
         printf("\n");
     }
-
 }
 void print_matrix(int **matrix, int m, int n)
 {
@@ -693,14 +730,13 @@ void print_matrix(int **matrix, int m, int n)
         }
         printf("\n");
     }
-  
 }
 /**/
 /***
  * @author Edoardo Desiderio
  * entry point del programma, avvia le varie funzioni
- * necessarie alla risoluzione del problema. 
- * Il programma accetta un input corrispondente alla 
+ * necessarie alla risoluzione del problema.
+ * Il programma accetta un input corrispondente alla
  * matrice descritta dal problema
  * @param argc
  * @param argv
@@ -708,8 +744,8 @@ void print_matrix(int **matrix, int m, int n)
 int main(int argc, char const *argv[])
 {
     int *r_c;
-    int r, c,i;
-    int rainded = 0;   
+    int r, c, i;
+    int rainded = 0;
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -717,8 +753,9 @@ int main(int argc, char const *argv[])
                         cammini minimi */
     double *d;       /* d[v] è la distanza minima dalla sorgente al
                         nodo v */
-    int *p;         /* p[v] è il predecessore di v nel cammino
-                        minimo dalla sorgente */
+    int *p;          /* p[v] è il predecessore di v nel cammino
+                         minimo dalla sorgente */
+    int *rain_vector;
     Graph *g;
     if (argc != 2)
     {
@@ -748,27 +785,23 @@ int main(int argc, char const *argv[])
     g = graph_create(r * c);
     assert(g != NULL);
     fill_graph(g, matrix, r, c);
-    
+
     /*graph_print(g);*/
-    d = (double*)malloc(g->n * sizeof(*d)); assert(d != NULL);
-    p = (int*)malloc(g->n * sizeof(*p)); assert(p != NULL);
-    sp = (const Edge**)malloc(g->n * sizeof(*sp)); assert(sp != NULL);
+    d = (double *)malloc(g->n * sizeof(*d));
+    assert(d != NULL);
+    p = (int *)malloc(g->n * sizeof(*p));
+    assert(p != NULL);
+    sp = (const Edge **)malloc(g->n * sizeof(*sp));
+    assert(sp != NULL);
+    rain_vector = (int *)malloc(g->n * sizeof(*rain_vector));
+    assert(rain_vector != NULL);
 
-    rainded = dijkstra(g, 0, d, p, sp,matrix,c);
-    print_path(p,0,GRAPH_INDEX(c-1,r-1,c));
+    dijkstra(g, 0, d, p, sp, rain_vector);
 
-    for ( i = 0; sp[i] != NULL; i++)
-    {
-        printf("%d\t  ",sp[i]->src);
-        if (10 %i == 0)
-        {
-            printf("\n");
-        }        
-    }
-    
+    print_path(p, 0, GRAPH_INDEX(r - 1, c - 1, c), c);
 
-    
-    
-    matrix_destroy(matrix,r);
+    printf("\n%d", rainded);
+
+    matrix_destroy(matrix, r);
     return EXIT_SUCCESS;
 }
