@@ -611,19 +611,17 @@ void fill_graph(Graph *g, int **matrix, int n, int m)
 /*FINE CODICE SUL GRAFO*/
 
 /*algoritmo di dykstra*/
-void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp, int *rain_vector)
+void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp)
 {
     int i;
     int v, u;
     const Edge *e;
-    int rained = 0;
     /*inizializzazione contenuti*/
     for (i = 0; i < g->n; i++)
     {
         sp[i] = NULL;
         d[i] = HUGE_VAL;
         p[i] = NODE_UNDEF;
-        rain_vector[i] = NODE_UNDEF;
     }
     d[s] = 0;
     p[s] = NODE_UNDEF;
@@ -655,7 +653,7 @@ void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp, int *ra
         }
     }
 }
- 
+
 void print_path(const int *p, int src, int dst, int col)
 {
     if (dst != src)
@@ -690,11 +688,51 @@ void print_path(const int *p, int src, int dst, int col)
         }
     }
 }
-void print_result(const Edge* sp, const int *p, int src, int dst, int col){
-    
-   int rained = 0;
-    
-    
+int count_rained(const Edge **sp, int src, int dst)
+{
+    static int count = 0;
+
+    if (dst != src)
+    {
+        if (sp[dst] == NULL)
+        {
+            return -1;
+        }
+        else
+        {
+            if (sp[dst]->weight != WEIGHT_DRY)
+            {
+                count++;
+            }
+            count += count_rained(sp, src, sp[dst]->src);
+        }
+    }
+    return count;
+}
+int count_path(const int *p, int src, int dst)
+{
+    static int count = 0;
+
+    if (dst != src)
+    {
+        if (p[dst] == NODE_UNDEF)
+        {
+            return -1;
+        }
+        else
+        {
+            count++;
+            count += count_path(p, src, p[dst]);
+        }
+    }
+    return count;
+}
+void print_result(const Edge **sp, const int *p, int src, int dst, int col)
+{
+
+    int rained = count_rained(sp, src, dst);
+    int n_path = count_path(p, src, dst);
+    printf("\n%d\t%d", n_path, rained);
     print_path(p, src, dst, col);
 }
 void print_dist(const Graph *g, int src, int dst, const int *p, const double *d, int col)
@@ -744,8 +782,7 @@ void print_matrix(int **matrix, int m, int n)
 int main(int argc, char const *argv[])
 {
     int *r_c;
-    int r, c, i;
-    int rainded = 0;
+    int r, c;
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -755,7 +792,7 @@ int main(int argc, char const *argv[])
                         nodo v */
     int *p;          /* p[v] è il predecessore di v nel cammino
                          minimo dalla sorgente */
-    int *rain_vector;
+
     Graph *g;
     if (argc != 2)
     {
@@ -793,14 +830,10 @@ int main(int argc, char const *argv[])
     assert(p != NULL);
     sp = (const Edge **)malloc(g->n * sizeof(*sp));
     assert(sp != NULL);
-    rain_vector = (int *)malloc(g->n * sizeof(*rain_vector));
-    assert(rain_vector != NULL);
 
-    dijkstra(g, 0, d, p, sp, rain_vector);
+    dijkstra(g, 0, d, p, sp);
 
-    print_path(p, 0, GRAPH_INDEX(r - 1, c - 1, c), c);
-
-    printf("\n%d", rainded);
+    print_result(sp, p, 0, GRAPH_INDEX(r - 1, c - 1, c), c);
 
     matrix_destroy(matrix, r);
     return EXIT_SUCCESS;
