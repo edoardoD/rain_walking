@@ -7,11 +7,13 @@
 #include <time.h>
 #include <limits.h>
 
+/*#define DEBUG*/
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
 #define MATRIX_I(val, col) (val / col)
 #define MATRIX_J(val, col) (val % col)
 #define IS_DRY -1
-#define WEIGHT_DRY 1.0
+#define DRY_WEIGHT 1.0
+#define WET_WEIGHT 1.1
 
 /*min heap */
 const int NODE_UNDEF = -1;
@@ -440,7 +442,7 @@ void graph_add_edge(Graph *g, int src, int dst, double weight, int **matrix, int
 
         if (!exsit_edge(g, dst, src))
         {
-            graph_add_edge(g, dst, src, matrix[MATRIX_I(src, c)][MATRIX_J(src, c)] == IS_DRY ? 1.0 : weight, matrix, c);
+            graph_add_edge(g, dst, src, matrix[MATRIX_I(src, c)][MATRIX_J(src, c)] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, c);
         }
     }
     else
@@ -454,6 +456,31 @@ int graph_out_degree(const Graph *g, int v)
     assert(g != NULL);
     assert((v >= 0) && (v < graph_n_nodes(g)));
     return g->out_deg[v];
+}
+
+void graph_destroy(Graph *g)
+{
+    int i;
+
+    assert(g != NULL);
+
+    for (i = 0; i < g->n; i++)
+    {
+        Edge *edge = g->edges[i];
+        while (edge != NULL)
+        {
+            Edge *next = edge->next;
+            free(edge);
+            edge = next;
+        }
+        g->edges[i] = NULL; /* e' superfluo */
+    }
+    free(g->edges);
+    free(g->in_deg);
+    free(g->out_deg);
+    g->n = 0;
+    g->edges = NULL;
+    free(g);
 }
 
 void graph_print(const Graph *g)
@@ -557,21 +584,7 @@ int **load_matrix(FILE *filein, int rows, int col)
     }
     return matrix;
 }
-/***
- * Genera double random sicuramente maggiore del valore affidato per archi entranti in
-    celle asciutte
-    * @returns un double random ***/
-static double generate_random_number()
-{
-    double random_number;
-    srand(time(NULL));
-    random_number = ((double)rand() / (double)RAND_MAX) * 100.0;
-    while (random_number <= 3.0)
-    {
-        random_number = ((double)rand() / (double)RAND_MAX) * 100.0;
-    }
-    return random_number;
-}
+
 /***
  * Edoardo Desiderio.
  * funzione che riempie il grafo con i nodi e gli archi,
@@ -588,7 +601,6 @@ void fill_graph(Graph *g, int **matrix, int n, int m)
 {
 
     int i, j;
-    double wet_weigth = generate_random_number();
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < m; j++)
@@ -597,11 +609,11 @@ void fill_graph(Graph *g, int **matrix, int n, int m)
             {
                 if (i + 1 < n && matrix[i + 1][j] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix, m);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
                 }
                 if (j + 1 < m && matrix[i][j + 1] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? WEIGHT_DRY : wet_weigth, matrix, m);
+                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
                 }
             }
         }
@@ -656,113 +668,159 @@ void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp)
 
 void print_path(const int *p, int src, int dst, int col)
 {
-    if (dst != src)
+    int current = dst;
+    while (current != src)
     {
-        if (p[dst] == NODE_UNDEF)
+        if (p[current] == NODE_UNDEF)
         {
-            printf("Non raggiungibile");
+            printf("\n");
+            return;
         }
         else
         {
-            print_path(p, src, p[dst], col);
-            if (dst - col == p[dst])
+            if (current - col == p[current])
             {
                 printf("S");
             }
-            else if (dst + col == p[dst])
+            else if (current + col == p[current])
             {
                 printf("N");
             }
-            else if (dst - 1 == p[dst])
+            else if (current - 1 == p[current])
             {
                 printf("E");
             }
-            else if (dst + 1 == p[dst])
+            else if (current + 1 == p[current])
             {
                 printf("O");
             }
             else
             {
                 printf("\nERRORE");
+                return;
             }
+            current = p[current];
         }
     }
 }
-int count_rained(const Edge **sp, int src, int dst)
-{
-    static int count = 0;
 
-    if (dst != src)
-    {
-        if (sp[dst] == NULL)
-        {
-            return -1;
-        }
-        else
-        {
-            if (sp[dst]->weight != WEIGHT_DRY)
-            {
-                count++;
-            }
-            count += count_rained(sp, src, sp[dst]->src);
-        }
-    }
-    return count;
-}
-int count_path(const int *p, int src, int dst)
+char *string_path(const int *p, int src, int dst, int col)
 {
-    static int count = 0;
-
+    char *result;
     if (dst != src)
     {
         if (p[dst] == NODE_UNDEF)
         {
-            return -1;
+            return "Non raggiungibile";
         }
         else
         {
-            count++;
-            count += count_path(p, src, p[dst]);
+            char *path = string_path(p, src, p[dst], col);
+            char *direction = "";
+            if (dst - col == p[dst])
+            {
+                direction = "S";
+            }
+            else if (dst + col == p[dst])
+            {
+                direction = "N";
+            }
+            else if (dst - 1 == p[dst])
+            {
+                direction = "E";
+            }
+            else if (dst + 1 == p[dst])
+            {
+                direction = "O";
+            }
+            else
+            {
+                direction = "\nERRORE";
+            }
+            result = malloc(strlen(path) + strlen(direction) + 1);
+            strcpy(result, path);
+            strcat(result, direction);
+            memset(path, 0, strlen(path));
+            return result;
         }
     }
-    return count;
+    return "";
 }
+
+/*funzione che calca quanti edge hanno peso uguale a WET_WEGHT, ritorna -1 se il percorso non è raggiungibile*/
+int count_rained(const Edge **sp, int src, int dst)
+{
+    int i;
+    int n_rained = 1;
+    if (sp[dst] == NULL)
+    {
+        return -1;
+    }
+    for (i = dst; i != src; i = sp[i]->src)
+    {
+        if (sp[i]->src == NODE_UNDEF)
+        {
+            return -1;
+        }
+        if (sp[i]->weight == WET_WEIGHT)
+        {
+            n_rained++;
+        }
+    }
+    return n_rained;
+}
+
+/*funzione che calcloa quanti nodi del grafo fanno parte del percorso, ritorna -1 se non è raggiungibile*/
+int count_path(const int *p, int src, int dst)
+{
+    int i;
+    int n_path = 1;
+    if (p[dst] == NODE_UNDEF)
+    {
+        return -1;
+    }
+    for (i = dst; i != src; i = p[i])
+    {
+        if (p[i] == NODE_UNDEF)
+        {
+            return -1;
+        }
+        n_path++;
+    }
+    return n_path;
+}
+
+/***
+ * Edoardo Desiderio
+ * funzione che stampa il risultato
+ * @param sp
+ * @param p
+ * @param src
+ * @param dst
+ * @param col
+ * ***/
 void print_result(const Edge **sp, const int *p, int src, int dst, int col)
 {
 
-    int rained = count_rained(sp, src, dst);
     int n_path = count_path(p, src, dst);
-    printf("\n%d\t%d", n_path, rained);
+    int rained = count_rained(sp, src, dst);
+    printf("%d\t%d\n", n_path, rained);
+    /*int n_path = count_path(p, src, dst);*/
     print_path(p, src, dst, col);
 }
-void print_dist(const Graph *g, int src, int dst, const int *p, const double *d, int col)
-{
-    const int n = graph_n_nodes(g);
-    int v, from_idx = 0, to_idx = n - 1;
-
-    assert(p != NULL);
-    assert(d != NULL);
-
-    if (dst >= 0)
-    {
-        from_idx = to_idx = dst;
-    }
-
-    printf(" src  dst            d path\n");
-    printf("---- ---- ------------ -------------------------\n");
-    for (v = from_idx; v <= to_idx; v++)
-    {
-        printf("%4d %4d %12.4f ", src, v, d[v]);
-        print_path(p, src, v, col);
-        printf("\n");
-    }
-}
-void print_matrix(int **matrix, int m, int n)
+/***
+ * Edoardo Desiderio
+ * funzione di debug per stampare la matrice
+ * @param matrix matrice
+ * @param m righe
+ * @param n colonne
+ * ***/
+void print_matrix(int **matrix, int n, int m)
 {
     int i, j;
-    for (i = 0; i < m; i++)
+    for (i = 0; i < n; i++)
     {
-        for (j = 0; j < n; j++)
+        for (j = 0; j < m; j++)
         {
             printf("%d\t", matrix[i][j]);
         }
@@ -782,7 +840,7 @@ void print_matrix(int **matrix, int m, int n)
 int main(int argc, char const *argv[])
 {
     int *r_c;
-    int r, c;
+    int rows, cols;
     int **matrix;
     FILE *filein = stdin;
     const Edge **sp; /* sp[v] è il puntatore all'arco che collega v
@@ -809,20 +867,23 @@ int main(int argc, char const *argv[])
             return EXIT_FAILURE;
         }
     }
-    printf("matrice caricata da %s\n", argv[1]);
-
     /*leggo la prima riga del file per le dimensioni*/
     r_c = read_dimension(filein);
-    r = r_c[0];
-    c = r_c[1];
+    rows = r_c[0];
+    cols = r_c[1];
     free(r_c);
     /*caricamento della matrice*/
-    matrix = load_matrix(filein, c, r);
+    matrix = load_matrix(filein, rows, cols);
+#ifdef DEBUG
+    print_matrix(matrix, rows, cols);
+#endif
     fclose(filein);
-    g = graph_create(r * c);
+    g = graph_create(rows * cols);
     assert(g != NULL);
-    fill_graph(g, matrix, r, c);
-
+    fill_graph(g, matrix, rows, cols);
+#ifdef DEBUG
+    graph_print(g);
+#endif
     /*graph_print(g);*/
     d = (double *)malloc(g->n * sizeof(*d));
     assert(d != NULL);
@@ -830,11 +891,15 @@ int main(int argc, char const *argv[])
     assert(p != NULL);
     sp = (const Edge **)malloc(g->n * sizeof(*sp));
     assert(sp != NULL);
+    matrix_destroy(matrix, rows);
 
     dijkstra(g, 0, d, p, sp);
 
-    print_result(sp, p, 0, GRAPH_INDEX(r - 1, c - 1, c), c);
+    print_result(sp, p, 0, GRAPH_INDEX(rows - 1, cols - 1, cols), cols);
+    free(d);
+    free(p);
+    free(sp);
+    graph_destroy(g);
 
-    matrix_destroy(matrix, r);
     return EXIT_SUCCESS;
 }
