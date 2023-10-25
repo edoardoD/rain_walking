@@ -13,7 +13,7 @@
 #include <time.h>
 #include <limits.h>
 
-/*#define DEBUG*/
+#define DEBUG
 #define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
 #define MATRIX_I(val, col) (val / col)
 #define MATRIX_J(val, col) (val % col)
@@ -58,36 +58,7 @@ typedef struct
     int *out_deg; /* grado uscente dei nodi       */
 } Graph;
 
-void minheap_print(const MinHeap *h)
-{
-    int i, j, width = 1;
-
-    assert(h != NULL);
-
-    printf("\n** Contenuto dello heap:\n\n");
-    printf("n=%d size=%d\n", h->n, h->size);
-    printf("Contenuto dell'array heap[] (stampato a livelli:\n");
-    i = 0;
-    while (i < h->n)
-    {
-        j = 0;
-        while (j < width && i < h->n)
-        {
-            printf("h[%2d]=(%2d, %6.2f) ", i, h->heap[i].key, h->heap[i].prio);
-            i++;
-            j++;
-        }
-        printf("\n");
-        width *= 2;
-    }
-    printf("\nContenuto dell'array pos[]:\n");
-    for (i = 0; i < h->size; i++)
-    {
-        printf("pos[%d]=%d ", i, h->pos[i]);
-    }
-    printf("\n\n** Fine contenuto dello heap\n\n");
-}
-
+/*--------------INIZIO MINHEAP---------------*/
 void minheap_clear(MinHeap *h)
 {
     int i;
@@ -261,14 +232,6 @@ int minheap_is_full(const MinHeap *h)
     return (h->n == h->size);
 }
 
-/* Restituisce il numero di elementi presenti nello heap */
-int minheap_get_n(const MinHeap *h)
-{
-    assert(h != NULL);
-
-    return h->n;
-}
-
 /* Restituisce la chiave associata alla priorità minima */
 int minheap_min(const MinHeap *h)
 {
@@ -277,13 +240,7 @@ int minheap_min(const MinHeap *h)
     return h->heap[0].key;
 }
 
-/* Come minheap_min(), ma restituisce la coppia (chiave, prio) */
-HeapElem minheap_min2(const MinHeap *h)
-{
-    assert(!minheap_is_empty(h));
 
-    return h->heap[0];
-}
 
 /* Inserisce una nuova coppia (key, prio) nello heap. */
 void minheap_insert(MinHeap *h, int key, double prio)
@@ -321,24 +278,6 @@ int minheap_delete_min(MinHeap *h)
     return result;
 }
 
-/* Come minheap_delete_min(), ma restituisce la coppia (chiave, prio) */
-HeapElem minheap_delete_min2(MinHeap *h)
-{
-    HeapElem result;
-
-    assert(!minheap_is_empty(h));
-
-    result = minheap_min2(h);
-    swap(h, 0, h->n - 1);
-    assert(h->heap[h->n - 1].key == result.key);
-    h->pos[result.key] = -1;
-    h->n--;
-    if (!minheap_is_empty(h))
-    {
-        move_down(h, 0);
-    }
-    return result;
-}
 
 /* Modifica la priorità associata alla chiave key. La nuova priorità
    può essere maggiore, minore o uguale alla precedente. */
@@ -517,8 +456,8 @@ void graph_print(const Graph *g)
  * ***/
 int *read_dimension(FILE *filein)
 {
-    int *dim = (int *)malloc(2 * sizeof(int));
-    fscanf(filein, "%d %d", &dim[0], &dim[1]);
+    int *dim = (int *)malloc(2 * sizeof(dim));
+    fscanf(filein, "%d\t%d", &dim[0], &dim[1]);
     return dim;
 }
 /***Edoardo desiderio
@@ -553,9 +492,8 @@ int **load_matrix(FILE *filein, int rows, int col)
     char c;
 
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
-    rows++;
-    matrix = (int **)malloc(rows*sizeof(*matrix));
-
+    matrix = (int **)calloc(rows,sizeof(*matrix));
+    assert(matrix != NULL);
     c = fgetc(filein);
     while (c != EOF)
     {
@@ -583,7 +521,8 @@ int **load_matrix(FILE *filein, int rows, int col)
         }
         else
         {
-            matrix[i] = (int *)malloc(col* sizeof(**matrix));
+            matrix[i] = (int *)calloc(col,sizeof(**matrix));
+            assert(matrix[i] != NULL);
             delta = INT_MIN;
         }
         c = fgetc(filein);
@@ -765,7 +704,6 @@ int count_path(const int *p, int src, int dst)
  * ***/
 void print_result(const Edge **sp, const int *p, int src, int dst, int col)
 {
-
     int n_path = count_path(p, src, dst);
     int rained = count_rained(sp, src, dst);
     printf("%d\t%d\n", n_path, rained);
@@ -775,8 +713,8 @@ void print_result(const Edge **sp, const int *p, int src, int dst, int col)
  * Edoardo Desiderio
  * funzione di debug per stampare la matrice
  * @param matrix matrice
- * @param m righe
- * @param n colonne
+ * @param n righe
+ * @param m colonne
  * ***/
 void print_matrix(int **matrix, int n, int m)
 {
@@ -785,7 +723,7 @@ void print_matrix(int **matrix, int n, int m)
     {
         for (j = 0; j < m; j++)
         {
-            printf("%d\t", matrix[i][j]);
+            printf("%d", matrix[i][j]);
         }
         printf("\n");
     }
@@ -859,15 +797,12 @@ int main(int argc, char const *argv[])
 
     dijkstra(g, 0, d, p, sp);
     print_result(sp, p, 0, GRAPH_INDEX(rows - 1, cols - 1, cols), cols);
+    printf("\n");
     
     free(d);
-    d=NULL;
     free(p);
-    p=NULL;
     free(sp);
-    sp=NULL;
     graph_destroy(g);
-    g=NULL;
     minheap_destroy(Q);
 
     return EXIT_SUCCESS;
