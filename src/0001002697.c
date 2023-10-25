@@ -554,7 +554,7 @@ int **load_matrix(FILE *filein, int rows, int col)
 
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
     rows++;
-    matrix = (int **)calloc(rows, sizeof(*matrix));
+    matrix = (int **)malloc(rows*sizeof(*matrix));
 
     c = fgetc(filein);
     while (c != EOF)
@@ -583,7 +583,7 @@ int **load_matrix(FILE *filein, int rows, int col)
         }
         else
         {
-            matrix[i] = (int *)calloc(col, sizeof(**matrix));
+            matrix[i] = (int *)malloc(col* sizeof(**matrix));
             delta = INT_MIN;
         }
         c = fgetc(filein);
@@ -710,48 +710,6 @@ void print_path(const int *p, int src, int dst, int col)
     }
 }
 
-char *string_path(const int *p, int src, int dst, int col)
-{
-    char *result;
-    if (dst != src)
-    {
-        if (p[dst] == NODE_UNDEF)
-        {
-            return "Non raggiungibile";
-        }
-        else
-        {
-            char *path = string_path(p, src, p[dst], col);
-            char *direction = "";
-            if (dst - col == p[dst])
-            {
-                direction = "S";
-            }
-            else if (dst + col == p[dst])
-            {
-                direction = "N";
-            }
-            else if (dst - 1 == p[dst])
-            {
-                direction = "E";
-            }
-            else if (dst + 1 == p[dst])
-            {
-                direction = "O";
-            }
-            else
-            {
-                direction = "\nERRORE";
-            }
-            result = malloc(strlen(path) + strlen(direction) + 1);
-            strcpy(result, path);
-            strcat(result, direction);
-            memset(path, 0, strlen(path));
-            return result;
-        }
-    }
-    return "";
-}
 
 /*funzione che calca quanti edge hanno peso uguale a WET_WEGHT, ritorna -1 se il percorso non è raggiungibile*/
 int count_rained(const Edge **sp, int src, int dst)
@@ -811,7 +769,6 @@ void print_result(const Edge **sp, const int *p, int src, int dst, int col)
     int n_path = count_path(p, src, dst);
     int rained = count_rained(sp, src, dst);
     printf("%d\t%d\n", n_path, rained);
-    /*int n_path = count_path(p, src, dst);*/
     print_path(p, src, dst, col);
 }
 /***
@@ -911,6 +868,7 @@ int main(int argc, char const *argv[])
     sp=NULL;
     graph_destroy(g);
     g=NULL;
+    minheap_destroy(Q);
 
     return EXIT_SUCCESS;
 }
