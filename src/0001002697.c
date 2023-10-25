@@ -18,8 +18,8 @@
 #define MATRIX_I(val, col) (val / col)
 #define MATRIX_J(val, col) (val % col)
 #define IS_DRY -1
-#define DRY_WEIGHT 1.0
-#define WET_WEIGHT 1.1
+#define DRY_WEIGHT 1.398461
+#define WET_WEIGHT 1.549381
 
 /*min heap */
 const int NODE_UNDEF = -1;
