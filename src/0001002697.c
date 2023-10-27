@@ -13,10 +13,7 @@
 #include <time.h>
 #include <limits.h>
 
-#define DEBUG
-#define GRAPH_INDEX(x, y, col) ((x) * (col) + (y))
-#define MATRIX_I(val, col) (val / col)
-#define MATRIX_J(val, col) (val % col)
+/*#define DEBUG*/
 #define IS_DRY -1
 #define DRY_WEIGHT 1.398461
 #define WET_WEIGHT 1.549381
@@ -69,6 +66,21 @@ void minheap_clear(MinHeap *h)
     }
     h->n = 0;
 }
+
+
+int graph_index(int x, int y, int col) {
+    return x * col + y;
+}
+
+int matrix_i(int val, int col) {
+    return val / col;
+}
+
+int matrix_j(int val, int col) {
+    return val % col;
+}
+
+
 
 /* Costruisce un min-heap vuoto che può contenere al massimo
    `size` elementi */
@@ -387,7 +399,7 @@ void graph_add_edge(Graph *g, int src, int dst, double weight, int **matrix, int
 
         if (!exsit_edge(g, dst, src))
         {
-            graph_add_edge(g, dst, src, matrix[MATRIX_I(src, c)][MATRIX_J(src, c)] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, c);
+            graph_add_edge(g, dst, src, matrix[matrix_i(src, c)][matrix_j(src, c)] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, c);
         }
     }
     else
@@ -499,7 +511,7 @@ int **load_matrix(FILE *filein, int rows, int col)
     {
         if (isdigit(c))
         {
-            tmp = atoi(&c);
+            tmp = c - '0';
             if (tmp > 0)
             {
                 if (tmp + j > delta)
@@ -554,11 +566,11 @@ void fill_graph(Graph *g, int **matrix, int n, int m)
             {
                 if (i + 1 < n && matrix[i + 1][j] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
+                    graph_add_edge(g, graph_index(i, j, m), graph_index(i + 1, j, m), matrix[i + 1][j] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
                 }
                 if (j + 1 < m && matrix[i][j + 1] <= 0)
                 {
-                    graph_add_edge(g, GRAPH_INDEX(i, j, m), GRAPH_INDEX(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
+                    graph_add_edge(g, graph_index(i, j, m), graph_index(i, j + 1, m), matrix[i][j + 1] == IS_DRY ? DRY_WEIGHT : WET_WEIGHT, matrix, m);
                 }
             }
         }
@@ -611,42 +623,48 @@ void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp)
     }
 }
 
-void print_path(const int *p, int src, int dst, int col)
+char* get_path(const int *p, int src, int dst, int col)
 {
+    char* path;
     int current = dst;
+    int i = 0;
+    path = (char *)malloc(sizeof(char) * (dst - src + 1));
     while (current != src)
     {
         if (p[current] == NODE_UNDEF)
         {
-            printf("\n");
-            return;
+            memset(path, '\0', sizeof(char) * (dst - src + 1));
+            return path;
         }
         else
         {
             if (current - col == p[current])
             {
-                printf("S");
+                path[i] = 'S';
             }
             else if (current + col == p[current])
             {
-                printf("N");
+                path[i] = 'N';
             }
             else if (current - 1 == p[current])
             {
-                printf("E");
+                path[i] = 'E';
             }
             else if (current + 1 == p[current])
             {
-                printf("O");
+                path[i] = 'O';
             }
             else
             {
-                printf("\nERRORE");
-                return;
+                memset(path, '\0', sizeof(char) * (dst - src + 1));
+                return path;
             }
             current = p[current];
+            i++;
         }
     }
+    path[i] = '\0';
+    return path;
 }
 
 
@@ -693,6 +711,20 @@ int count_path(const int *p, int src, int dst)
     return n_path;
 }
 
+char* str_reverse(char *str) {
+    char *p1 = str, *p2 = str + strlen(str) - 1;
+    if (!str || !*str)
+        return str;
+    while (p2 > p1) {
+        *p1 ^= *p2;
+        *p2 ^= *p1;
+        *p1 ^= *p2;
+        ++p1;
+        --p2;
+    }
+    return str;
+}
+
 /***
  * Edoardo Desiderio
  * funzione che stampa il risultato
@@ -704,10 +736,12 @@ int count_path(const int *p, int src, int dst)
  * ***/
 void print_result(const Edge **sp, const int *p, int src, int dst, int col)
 {
+    char *path = get_path(p, src, dst, col);
     int n_path = count_path(p, src, dst);
     int rained = count_rained(sp, src, dst);
     printf("%d\t%d\n", n_path, rained);
-    print_path(p, src, dst, col);
+    printf("%s\n", str_reverse(path));
+    free(path);
 }
 /***
  * Edoardo Desiderio
@@ -796,7 +830,7 @@ int main(int argc, char const *argv[])
     matrix_destroy(matrix, rows);
 
     dijkstra(g, 0, d, p, sp);
-    print_result(sp, p, 0, GRAPH_INDEX(rows - 1, cols - 1, cols), cols);
+    print_result(sp, p, 0, graph_index(rows - 1, cols - 1, cols), cols);
     printf("\n");
     
     free(d);
