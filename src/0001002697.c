@@ -1,6 +1,6 @@
 /***
  * @author Edoardo Desiderio
- * Gruppo B 
+ * Gruppo B
  * edoardo.desiderio3@studio.unibo.it
  * ***/
 
@@ -67,20 +67,20 @@ void minheap_clear(MinHeap *h)
     h->n = 0;
 }
 
-
-int graph_index(int x, int y, int col) {
+int graph_index(int x, int y, int col)
+{
     return x * col + y;
 }
 
-int matrix_i(int val, int col) {
+int matrix_i(int val, int col)
+{
     return val / col;
 }
 
-int matrix_j(int val, int col) {
+int matrix_j(int val, int col)
+{
     return val % col;
 }
-
-
 
 /* Costruisce un min-heap vuoto che può contenere al massimo
    `size` elementi */
@@ -252,8 +252,6 @@ int minheap_min(const MinHeap *h)
     return h->heap[0].key;
 }
 
-
-
 /* Inserisce una nuova coppia (key, prio) nello heap. */
 void minheap_insert(MinHeap *h, int key, double prio)
 {
@@ -289,7 +287,6 @@ int minheap_delete_min(MinHeap *h)
     }
     return result;
 }
-
 
 /* Modifica la priorità associata alla chiave key. La nuova priorità
    può essere maggiore, minore o uguale alla precedente. */
@@ -504,9 +501,42 @@ int **load_matrix(FILE *filein, int rows, int col)
     char c;
 
     /*inizializzo la matrice con calloc in maniera da pulire le memeorie*/
-    matrix = (int **)calloc(rows,sizeof(*matrix));
+    matrix = (int **)calloc(rows, sizeof(*matrix));
     assert(matrix != NULL);
     c = fgetc(filein);
+
+    for (i = 0; i < rows && c != EOF; i++)
+    {
+        
+        matrix[i] = (int *)calloc(col, sizeof(**matrix));
+
+        assert(matrix[i] != NULL);
+        /*avanza con il riempimento della riga solo quando trova numeri consecutivi*/
+        for (j = 0; j < col;)
+        {
+            if (isdigit(c))
+            {
+                tmp = c - '0';
+                if (tmp > 0)
+                {
+                    if (tmp + j > delta)
+                    {
+                        delta = tmp + j <= col ? tmp + j : col;
+                    }
+                }
+                else if (j <= delta)
+                {
+                    tmp = IS_DRY;
+                }
+                matrix[i][j] = tmp;
+                j++;
+            }
+            c= fgetc(filein);
+        }
+        delta = INT_MIN;
+    }
+
+/*
     while (c != EOF)
     {
         if (isdigit(c))
@@ -524,8 +554,10 @@ int **load_matrix(FILE *filein, int rows, int col)
                 tmp = IS_DRY;
             }
             matrix[i][j] = tmp;
+           
+
             j++;
-            if (j == col)
+            if (j == col && i < rows)
             {
                 i++;
                 j = 0;
@@ -533,12 +565,13 @@ int **load_matrix(FILE *filein, int rows, int col)
         }
         else
         {
-            matrix[i] = (int *)calloc(col,sizeof(**matrix));
+            matrix[i] = (int *)calloc(col, sizeof(**matrix));
             assert(matrix[i] != NULL);
             delta = INT_MIN;
         }
         c = fgetc(filein);
     }
+*/
     return matrix;
 }
 
@@ -623,9 +656,9 @@ void dijkstra(const Graph *g, int s, double *d, int *p, const Edge **sp)
     }
 }
 
-char* get_path(const int *p, int src, int dst, int col)
+char *get_path(const int *p, int src, int dst, int col)
 {
-    char* path;
+    char *path;
     int current = dst;
     int i = 0;
     path = (char *)malloc(sizeof(char) * (dst - src + 1));
@@ -666,7 +699,6 @@ char* get_path(const int *p, int src, int dst, int col)
     path[i] = '\0';
     return path;
 }
-
 
 /*funzione che calca quanti edge hanno peso uguale a WET_WEGHT, ritorna -1 se il percorso non è raggiungibile*/
 int count_rained(const Edge **sp, int src, int dst)
@@ -711,11 +743,13 @@ int count_path(const int *p, int src, int dst)
     return n_path;
 }
 
-char* str_reverse(char *str) {
+char *str_reverse(char *str)
+{
     char *p1 = str, *p2 = str + strlen(str) - 1;
     if (!str || !*str)
         return str;
-    while (p2 > p1) {
+    while (p2 > p1)
+    {
         *p1 ^= *p2;
         *p2 ^= *p1;
         *p1 ^= *p2;
@@ -832,7 +866,7 @@ int main(int argc, char const *argv[])
     dijkstra(g, 0, d, p, sp);
     print_result(sp, p, 0, graph_index(rows - 1, cols - 1, cols), cols);
     printf("\n");
-    
+
     free(d);
     free(p);
     free(sp);
